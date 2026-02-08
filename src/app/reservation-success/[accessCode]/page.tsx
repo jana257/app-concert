@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import CopyPromo from "./CopyPromo";
 
 type Props = {
   params: Promise<{ accessCode: string }>;
@@ -7,72 +9,48 @@ type Props = {
 export default async function ReservationSuccessPage({ params }: Props) {
   const { accessCode } = await params;
 
-  if (!accessCode) {
-    return <main style={{ padding: 24 }}>Nedostaje accessCode u URL-u.</main>;
-  }
-
   const reservation = await prisma.reservation.findUnique({
     where: { accessCode },
     include: {
-      show: {
-        include: {
-          event: true,
-          venue: true,
-        },
-      },
-      items: {
-        include: {
-          region: true,
-        },
-      },
+      show: { include: { event: true, venue: true } },
+      items: { include: { region: true } },
+      issuedPromo: true,
     },
   });
 
   if (!reservation) {
-    return <main style={{ padding: 24 }}>Rezervacija nije pronađena.</main>;
+    return (
+      <main style={{ padding: 24 }}>
+        <h1>Rezervacija nije pronađena</h1>
+        <p>Proveri šifru rezervacije.</p>
+        <Link href="/">Nazad na početnu</Link>
+      </main>
+    );
   }
 
   return (
     <main style={{ padding: 24 }}>
       <h1>✅ Rezervacija uspešna</h1>
 
-      <p>Sačuvaj ovu šifru (treba za izmenu i otkazivanje):</p>
+     <p>
+  <b>Šifra rezervacije:</b> {reservation.accessCode}
+  <br />
+  <CopyPromo
+    value={reservation.accessCode}
+    label="📋 Kopiraj šifru rezervacije"
+  />
+</p>
 
-      <div
-        style={{
-          marginTop: 12,
-          padding: 12,
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          display: "inline-block",
-          fontSize: 18,
-          fontWeight: 700,
-        }}
-      >
-        {reservation.accessCode}
-      </div>
-
-      <hr style={{ margin: "24px 0" }} />
-
-      <h2>Detalji</h2>
-      <p>
-        <b>Ime:</b> {reservation.fullName}
-      </p>
-      <p>
-        <b>Email:</b> {reservation.email}
-      </p>
 
       <p>
         <b>Koncert:</b> {reservation.show.event.artist} – {reservation.show.event.title}
-      </p>
-      <p>
+        <br />
         <b>Lokacija:</b> {reservation.show.venue.name}, {reservation.show.venue.city}
-      </p>
-      <p>
+        <br />
         <b>Termin:</b> {new Date(reservation.show.startsAt).toLocaleString()}
       </p>
 
-      <h3>Karte</h3>
+      <h2>Stavke</h2>
       <ul>
         {reservation.items.map((it) => (
           <li key={it.id}>
@@ -85,11 +63,38 @@ export default async function ReservationSuccessPage({ params }: Props) {
         <b>Ukupno:</b> {reservation.totalRsd} RSD
       </p>
 
-      <p style={{ marginTop: 24 }}>
-        <a href="/" style={{ textDecoration: "underline" }}>
-          ← Nazad na početnu
-        </a>
-      </p>
+      {reservation.promoCodeUsed ? (
+        <p>
+          <b>Iskorišćen promo kod:</b> {reservation.promoCodeUsed}
+        </p>
+      ) : null}
+
+      <hr style={{ margin: "16px 0" }} />
+
+      <h2>🎁 Tvoj promo kod za sledeću kupovinu</h2>
+
+      {reservation.issuedPromo ? (
+        <div style={{ padding: 12, border: "1px solid #ccc", borderRadius: 8, maxWidth: 360 }}>
+          <p style={{ margin: 0 }}>
+            <b>{reservation.issuedPromo.code}</b>
+          </p>
+          <p style={{ margin: "8px 0 0 0" }}>
+            Popust: {reservation.issuedPromo.discountPct}% (jednokratno)
+          </p>
+
+          <CopyPromo value={reservation.issuedPromo.code} label="📋 Kopiraj promo kod" />
+
+          <p style={{ margin: "8px 0 0 0", fontSize: 12, opacity: 0.75 }}>
+            Sačuvaj kod — može se iskoristiti samo jednom.
+          </p>
+        </div>
+      ) : (
+        <p>Promo kod još nije generisan.</p>
+      )}
+
+      <div style={{ marginTop: 16 }}>
+        <Link href="/">Nazad na početnu</Link>
+      </div>
     </main>
   );
 }

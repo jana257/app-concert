@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const email = String(form.get("email") || "").trim();
   const accessCode = String(form.get("accessCode") || "").trim();
 
-  console.log("CANCEL REQUEST:", { email, accessCode }); 
+  console.log("CANCEL REQUEST:", { email, accessCode });
 
   if (!email || !accessCode) {
     return NextResponse.json({ ok: false, error: "Nedostaju podaci." }, { status: 400 });
@@ -25,9 +25,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Karta je već otkazana." }, { status: 400 });
   }
 
-  await prisma.reservation.update({
-    where: { id: reservation.id },
-    data: { status: "CANCELLED" },
+  await prisma.$transaction(async (tx) => {
+    await tx.reservation.update({
+      where: { id: reservation.id },
+      data: { status: "CANCELLED" },
+    });
+
+    const issuedPromo = await tx.promoCode.findFirst({
+      where: { issuedByReservationId: reservation.id },
+      select: { id: true, status: true },
+    });
+
+    if (issuedPromo && issuedPromo.status !== "USED") {
+      await tx.promoCode.update({
+        where: { id: issuedPromo.id },
+        data: { status: "INVALID" },
+      });
+    }
   });
 
   return NextResponse.redirect(

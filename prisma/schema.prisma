@@ -112,36 +112,34 @@ model AppSettings {
 
 model Reservation {
   id           String   @id @default(cuid())
-
   showId       String
   show         Show     @relation(fields: [showId], references: [id])
 
   fullName     String
   email        String
   phone        String?
-
-  accessCode   String   @unique // šifra za pristup 
-
+  accessCode   String   @unique
   status       ReservationStatus @default(ACTIVE)
 
-  // promo kod unet pri kupovini (5% popust)
   promoCodeUsed String?
 
-  // valuta + kurs korišćen
   currencyCode String   @default("RSD")
-  fxRateUsed   Float?   // npr. 1 EUR = 117.2 RSD (ako je valuta EUR)
+  fxRateUsed   Float?
   totalRsd     Int
-  totalInCurrency Int?  // za prikaz u izabranoj valuti
+  totalInCurrency Int?
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   items        ReservationItem[]
+
   issuedPromo  PromoCode? @relation("IssuedPromo")
+  usedPromo    PromoCode? @relation("UsedPromo")
 
   @@index([email])
   @@index([showId])
 }
+
 
 model ReservationItem {
   id            String   @id @default(cuid())
@@ -166,9 +164,14 @@ model PromoCode {
   code          String      @unique
   status        PromoStatus @default(UNUSED)
   discountPct   Int         @default(5)
+
   issuedByReservationId String @unique
   issuedByReservation   Reservation @relation("IssuedPromo", fields: [issuedByReservationId], references: [id], onDelete: Cascade)
+
+  usedByReservationId String?   @unique
+  usedByReservation   Reservation? @relation("UsedPromo", fields: [usedByReservationId], references: [id])
 
   usedAt        DateTime?
   createdAt     DateTime @default(now())
 }
+
