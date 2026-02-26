@@ -10,14 +10,13 @@ type RegionInput = {
   id?: string;
   name: string;
   capacity: number;
-  sortOrder?: number;
 };
 
 export async function PUT(req: Request, { params }: Ctx) {
   const auth = await requireAdmin();
   if (auth) return auth;
 
-  const { id: venueId } = await params; 
+  const { id: venueId } = await params;
   const body = await req.json().catch(() => null);
 
   const name = String(body?.name || "").trim();
@@ -35,7 +34,6 @@ export async function PUT(req: Request, { params }: Ctx) {
       id: r.id,
       name: String(r.name || "").trim(),
       capacity: Number(r.capacity ?? 0),
-      sortOrder: Number(r.sortOrder ?? 0),
     }))
     .filter((r) => r.name.length > 0 && Number.isFinite(r.capacity) && r.capacity > 0);
 
@@ -46,17 +44,20 @@ export async function PUT(req: Request, { params }: Ctx) {
 
   const keepIds: string[] = [];
 
-  for (const r of cleaned) {
+  for (let idx = 0; idx < cleaned.length; idx++) {
+    const r = cleaned[idx];
+    const sortOrder = idx; 
+
     if (r.id) {
       const up = await prisma.seatingRegion.update({
         where: { id: r.id },
-        data: { name: r.name, capacity: r.capacity, sortOrder: r.sortOrder },
+        data: { name: r.name, capacity: r.capacity, sortOrder },
         select: { id: true },
       });
       keepIds.push(up.id);
     } else {
       const created = await prisma.seatingRegion.create({
-        data: { venueId, name: r.name, capacity: r.capacity, sortOrder: r.sortOrder },
+        data: { venueId, name: r.name, capacity: r.capacity, sortOrder },
         select: { id: true },
       });
       keepIds.push(created.id);
@@ -77,7 +78,7 @@ export async function DELETE(_: Request, { params }: Ctx) {
   const auth = await requireAdmin();
   if (auth) return auth;
 
-  const { id: venueId } = await params; 
+  const { id: venueId } = await params;
   await prisma.venue.delete({ where: { id: venueId } });
   return NextResponse.json({ ok: true });
 }

@@ -57,11 +57,6 @@ export default function AdminShowsPage() {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [regionEditingId, setRegionEditingId] = useState<string | null>(null);
-  const [regionName, setRegionName] = useState("");
-  const [regionCapacity, setRegionCapacity] = useState(0);
-  const [savingRegion, setSavingRegion] = useState(false);
-
   const selectedVenue = useMemo(
     () => venues.find((v) => v.id === venueId) || null,
     [venues, venueId]
@@ -127,9 +122,16 @@ export default function AdminShowsPage() {
 
   function resetShowForm() {
     setStartsAtLocal("");
-    setPrices({});
     setEditingId(null);
     setErr(null);
+
+    if (selectedVenue) {
+      const next: Record<string, number> = {};
+      for (const r of selectedVenue.regions) next[r.id] = 0;
+      setPrices(next);
+    } else {
+      setPrices({});
+    }
   }
 
   async function createShow(e: FormEvent<HTMLFormElement>) {
@@ -227,79 +229,8 @@ export default function AdminShowsPage() {
     }
   }
 
-  function beginRegionEdit(r: RegionRow) {
-    setRegionEditingId(r.id);
-    setRegionName(r.name);
-    setRegionCapacity(r.capacity);
-  }
-
-  function cancelRegionEdit() {
-    setRegionEditingId(null);
-    setRegionName("");
-    setRegionCapacity(0);
-  }
-
-  async function saveRegion() {
-    if (!venueId) return;
-
-    setErr(null);
-    setSavingRegion(true);
-
-    try {
-      const payload = {
-        name: regionName,
-        capacity: regionCapacity,
-      };
-
-      const url = regionEditingId
-        ? `/api/admin/regions/${regionEditingId}`
-        : `/api/admin/venues/${venueId}/regions`;
-
-      const res = await fetch(url, {
-        method: regionEditingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!data.ok) {
-        setErr(data.error || "Greška.");
-        return;
-      }
-
-      cancelRegionEdit();
-      await loadMeta();
-    } catch {
-      setErr("Greška pri komunikaciji sa serverom.");
-    } finally {
-      setSavingRegion(false);
-    }
-  }
-
-  async function deleteRegion(regionId: string) {
-    if (!confirm("Obrisati region?")) return;
-
-    setErr(null);
-    try {
-      const res = await fetch(`/api/admin/regions/${regionId}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setErr(data.error || "Greška.");
-        return;
-      }
-
-      if (regionEditingId === regionId) cancelRegionEdit();
-      await loadMeta();
-    } catch {
-      setErr("Greška pri komunikaciji sa serverom.");
-    }
-  }
-
   const inputBase =
     "mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-white/20 focus:bg-black/40";
-
-  const regionNameId = "regionName";
-  const regionCapId = "regionCapacity";
 
   return (
     <div className="mx-auto mt-10 w-full max-w-6xl px-5">
@@ -315,10 +246,10 @@ export default function AdminShowsPage() {
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[420px_1fr]">
-       
+     
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg backdrop-blur">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold">{editingId ? "Izmena show-a" : "Novi show"}</h2>
+            <h2 className="text-lg font-semibold">{editingId ? "Izmena koncerta" : "Novi koncert"}</h2>
             {editingId ? (
               <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/70 ring-1 ring-white/10">
                 U izmeni
@@ -381,113 +312,17 @@ export default function AdminShowsPage() {
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white/90">Regioni (naziv + kapacitet)</h3>
+                <h3 className="text-sm font-semibold text-white/90">Cene po regionu (RSD)</h3>
                 {selectedVenue ? (
                   <span className="text-xs text-white/60">{selectedVenue.regions.length} region(a)</span>
                 ) : null}
               </div>
 
               {!selectedVenue ? (
-                <p className="mt-3 text-sm text-white/70">Izaberi lokaciju da bi dodala regione.</p>
-              ) : (
-                <>
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <label htmlFor={regionNameId} className="block text-xs text-white/70">
-                        Naziv
-                      </label>
-                      <input
-                        id={regionNameId}
-                        value={regionName}
-                        onChange={(e) => setRegionName(e.target.value)}
-                        className={inputBase}
-                        placeholder="npr. Parter"
-                        title="Naziv regiona"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor={regionCapId} className="block text-xs text-white/70">
-                        Kapacitet
-                      </label>
-                      <input
-                        id={regionCapId}
-                        type="number"
-                        min={1}
-                        value={regionCapacity}
-                        onChange={(e) => setRegionCapacity(int(e.target.value, 0))}
-                        className={inputBase}
-                        title="Kapacitet regiona"
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={saveRegion}
-                        disabled={savingRegion}
-                        className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
-                      >
-                        {regionEditingId ? "Sačuvaj region" : "Dodaj region"}
-                      </button>
-
-                      {regionEditingId ? (
-                        <button
-                          type="button"
-                          onClick={cancelRegionEdit}
-                          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/85 transition hover:bg-white/10"
-                        >
-                          Otkaži izmenu
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-2">
-                    {selectedVenue.regions
-                      .slice()
-                      .sort((a, b) => a.sortOrder - b.sortOrder)
-                      .map((r) => (
-                        <div
-                          key={r.id}
-                          className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-                        >
-                          <div className="text-sm text-white/85">
-                            {r.name}{" "}
-                            <span className="text-xs text-white/60">(kap: {r.capacity})</span>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => beginRegionEdit(r)}
-                              className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/85 hover:bg-white/10"
-                            >
-                              Izmeni
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteRegion(r.id)}
-                              className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-red-200 hover:bg-red-500/15"
-                            >
-                              Obriši
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <h3 className="text-sm font-semibold text-white/90">Cene po regionu (RSD)</h3>
-
-              {!selectedVenue ? (
                 <p className="mt-3 text-sm text-white/70">Izaberi lokaciju da se prikažu regioni.</p>
               ) : selectedVenue.regions.length === 0 ? (
                 <p className="mt-3 text-sm text-white/70">
-                  Nema regiona za ovu lokaciju. Dodaj region iznad.
+                  Nema regiona za ovu lokaciju. Dodaj regione u Admin → Lokacije.
                 </p>
               ) : (
                 <div className="mt-3 grid gap-3">
@@ -507,7 +342,19 @@ export default function AdminShowsPage() {
                             <label htmlFor={priceInputId} className="sr-only">
                               Cena za region {r.name} (RSD)
                             </label>
-                            
+
+                            <input
+                              id={priceInputId}
+                              className="w-36 rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-right text-white outline-none transition focus:border-white/20 focus:bg-black/40"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={String(prices[r.id] ?? 0)}
+                              onChange={(e) => setPrice(r.id, int(e.target.value, 0))}
+                              placeholder="RSD"
+                              title={`Cena za ${r.name}`}
+                            />
+                            <span className="text-xs text-white/50">RSD</span>
                           </div>
                         </div>
                       );
@@ -629,8 +476,6 @@ export default function AdminShowsPage() {
               </tbody>
             </table>
           </div>
-
-          
         </div>
       </div>
 

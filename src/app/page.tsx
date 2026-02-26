@@ -169,7 +169,7 @@ export default async function HomePage() {
                       href={`/reserve/${r.show.id}`}
                       className="shrink-0 rounded-full border border-lime-700 px-4 py-2 text-sm font-semibold text-lime-700 hover:bg-lime-50"
                     >
-                      See tickets
+                      Detalji
                     </Link>
                   </div>
                 );

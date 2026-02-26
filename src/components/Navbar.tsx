@@ -33,15 +33,7 @@ export default function Navbar() {
           <span className="tracking-tight">app-concert</span>
         </Link>
 
-        <div className="hidden flex-1 md:block">
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-            <span className="text-zinc-300">🔎</span>
-            <input
-              className="w-full bg-transparent text-sm text-white placeholder:text-zinc-400 focus:outline-none"
-              placeholder="Search events, artists, venues..."
-            />
-          </div>
-        </div>
+       
 
         <nav className="ml-auto flex items-center gap-2">
           <NavItem href="/" label="Početna" />

@@ -35,7 +35,7 @@ export default function AdminCurrenciesPage() {
   }, []);
 
   async function toggle(code: string, isEnabled: boolean) {
-    // optimistički update
+   
     setRows((prev) => prev.map((r) => (r.code === code ? { ...r, isEnabled } : r)));
 
     try {
@@ -49,14 +49,12 @@ export default function AdminCurrenciesPage() {
 
       const data = await res.json();
       if (!data.ok) {
-        // rollback
         setRows((prev) =>
           prev.map((r) => (r.code === code ? { ...r, isEnabled: !isEnabled } : r))
         );
         setErr(data.error || "Greška pri čuvanju.");
       }
     } catch {
-      // rollback
       setRows((prev) =>
         prev.map((r) => (r.code === code ? { ...r, isEnabled: !isEnabled } : r))
       );

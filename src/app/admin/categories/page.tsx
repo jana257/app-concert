@@ -8,7 +8,6 @@ async function readJson(res: Response) {
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) return res.json();
 
-  // fallback: pročitaj text pa javi smislen error
   const text = await res.text();
   throw new Error(
     `Server nije vratio JSON (status ${res.status}). Body: ${text.slice(0, 200)}`
@@ -104,50 +103,99 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  const inputBase =
+    "w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-white/20 focus:bg-black/40 placeholder:text-white/40";
+  const btnPrimary =
+    "rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90";
+  const btnGhost =
+    "rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/85 transition hover:bg-white/10";
+  const btnDanger =
+    "rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200 transition hover:bg-red-500/15";
+
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: 20 }}>
-      <h1>Kategorije</h1>
-      <p>Dodaj/izmeni/obriši kategorije koncerata.</p>
+    <div className="mx-auto mt-10 w-full max-w-5xl px-6">
+      <h1 className="text-3xl font-semibold tracking-tight text-white">Kategorije</h1>
+      <p className="mt-2 text-sm text-white/70">
+        Dodaj / izmeni / obriši kategorije koncerata.
+      </p>
 
-      {err && <p style={{ color: "crimson" }}>{err}</p>}
+      {err && (
+        <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {err}
+        </div>
+      )}
 
-      <h2 style={{ marginTop: 20 }}>Nova kategorija</h2>
-      <form onSubmit={create} style={{ display: "flex", gap: 10, maxWidth: 600 }}>
-        <label style={{ flex: 1 }}>
-          <span style={{ display: "none" }}>Naziv kategorije</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Naziv kategorije"
-            aria-label="Naziv kategorije"
-            title="Naziv kategorije"
-            style={{ width: "100%", padding: 8 }}
-          />
-        </label>
-        <button type="submit">Dodaj</button>
-      </form>
+      <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg backdrop-blur">
+        <h2 className="text-lg font-semibold text-white">Nova kategorija</h2>
 
-      <h2 style={{ marginTop: 26 }}>Lista</h2>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>
-              Naziv
-            </th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>
-              Akcije
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <CategoryRow key={r.id} row={r} onRename={rename} onDelete={del} />
-          ))}
-        </tbody>
-      </table>
+        <form onSubmit={create} className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <label className="flex-1">
+            <span className="sr-only">Naziv kategorije</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Naziv kategorije"
+              aria-label="Naziv kategorije"
+              title="Naziv kategorije"
+              className={inputBase}
+            />
+          </label>
 
-      <div style={{ marginTop: 25 }}>
-        <a href="/admin/dashboard">← Nazad</a>
+          <button type="submit" className={btnPrimary}>
+            Dodaj
+          </button>
+        </form>
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-white">Lista</h2>
+          <button type="button" onClick={load} className={btnGhost}>
+            Osveži
+          </button>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wider text-white/60">
+                <th className="px-4 py-3 border-b border-white/10">Naziv</th>
+                <th className="px-4 py-3 border-b border-white/10">Akcije</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <CategoryRow
+                  key={r.id}
+                  row={r}
+                  onRename={rename}
+                  onDelete={del}
+                  inputBase={inputBase}
+                  btnPrimary={btnPrimary}
+                  btnGhost={btnGhost}
+                  btnDanger={btnDanger}
+                />
+              ))}
+
+              {rows.length === 0 && (
+                <tr>
+                  <td className="px-4 py-6 text-sm text-white/70" colSpan={2}>
+                    Nema kategorija.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <a
+          href="/admin/dashboard"
+          className="text-sm text-white/80 underline underline-offset-4 hover:text-white"
+        >
+          ← Nazad
+        </a>
       </div>
     </div>
   );
@@ -157,10 +205,18 @@ function CategoryRow({
   row,
   onRename,
   onDelete,
+  inputBase,
+  btnPrimary,
+  btnGhost,
+  btnDanger,
 }: {
   row: Row;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  inputBase: string;
+  btnPrimary: string;
+  btnGhost: string;
+  btnDanger: string;
 }) {
   const [edit, setEdit] = useState(false);
   const [val, setVal] = useState(row.name);
@@ -176,8 +232,8 @@ function CategoryRow({
   }
 
   return (
-    <tr>
-      <td style={{ padding: 8 }}>
+    <tr className="align-middle hover:bg-white/5">
+      <td className="px-4 py-3 border-b border-white/10 text-sm text-white/85">
         {edit ? (
           <input
             value={val}
@@ -189,28 +245,32 @@ function CategoryRow({
               if (e.key === "Enter") save();
               if (e.key === "Escape") cancel();
             }}
-            style={{ padding: 6, width: "100%" }}
+            className={inputBase}
           />
         ) : (
           row.name
         )}
       </td>
 
-      <td style={{ padding: 8 }}>
+      <td className="px-4 py-3 border-b border-white/10">
         {edit ? (
-          <>
-            <button onClick={save} style={{ marginRight: 8 }}>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={save} className={btnPrimary}>
               Sačuvaj
             </button>
-            <button onClick={cancel}>Otkaži</button>
-          </>
+            <button type="button" onClick={cancel} className={btnGhost}>
+              Otkaži
+            </button>
+          </div>
         ) : (
-          <>
-            <button onClick={() => setEdit(true)} style={{ marginRight: 8 }}>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setEdit(true)} className={btnGhost}>
               Izmeni
             </button>
-            <button onClick={() => onDelete(row.id)}>Obriši</button>
-          </>
+            <button type="button" onClick={() => onDelete(row.id)} className={btnDanger}>
+              Obriši
+            </button>
+          </div>
         )}
       </td>
     </tr>
