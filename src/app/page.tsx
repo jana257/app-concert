@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 type Category = {
   id: string;
   name: string;
@@ -21,7 +22,11 @@ type Show = {
 };
 
 export default async function HomePage() {
-  const res = await fetch("http://localhost:3000/api/home");
+  const h = await headers();
+  const host = h.get("host");
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+
+  const res = await fetch(`${protocol}://${host}/api/home`, { cache: "no-store" });
 
   if (!res.ok) {
     return <div>Greška pri učitavanju koncerata.</div>;
